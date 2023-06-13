@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { nextTick, ref } from 'vue'
 import { Item, wordsModules } from './sources/index'
 import Settings from './components/Settings.vue'
 
@@ -8,6 +8,9 @@ const wordsList = ref(wordsModules)
 
 // 展开行的keys
 const expandKeys = ref<string[]>([])
+
+// 播放音频地址
+const audioPath = ref('')
 
 /**
  * @description: 播放发音
@@ -33,9 +36,21 @@ const onPlayKey = (item: Item, type: string = 'uk'): void => {
 
   const sourceUrl = `https://www.oxfordlearnersdictionaries.com/media/english/${type}_pron/${f}/${s}/${t}/${audioName}.mp3`
 
-  const audio = new Audio(sourceUrl)
+  if ((window as any).WeixinJSBridge) {
+    (window as any).WeixinJSBridge.invoke('getNetworkType', {}, async () => {
+      const audio: HTMLAudioElement = document?.getElementById('audio') as HTMLAudioElement
 
-  audio.play()
+      audioPath.value = sourceUrl
+
+      await nextTick()
+
+      audio.play()
+    }, false)
+  } else {
+    const audio = new Audio(sourceUrl)
+
+    audio.play()
+  }
 }
 
 /**
@@ -82,6 +97,7 @@ const onFilter = ({ level }: { level?: string[], keyWords?: string }): void => {
 
 <template>
   <div class="content">
+    <audio id="audio" :src="audioPath" :loop="false"></audio>
     <template v-for="mod in wordsList" :key="mod.key">
       <h2 :id="mod.key" class="title">{{ mod.key }}</h2>
       <ul class="words-wrapper">
